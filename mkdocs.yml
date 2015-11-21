@@ -5,3 +5,4 @@ theme: readthedocs
 docs_dir: 'doc'
 pages:
 - ['index.md', 'Index']
+- ['home.md', 'Home']
