@@ -1,0 +1,7 @@
+site_name: HavenOnDemand.jl
+site_author: Ismael Venegas Castelló.
+repo_url: https://github.com/richitmx/HavenOnDemand.jl
+theme: readthedocs
+docs_dir: 'doc'
+pages:
+- ['index.md', 'Index']
