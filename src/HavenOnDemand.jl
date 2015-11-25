@@ -1,4 +1,8 @@
+__precompile__(true)
+
 module HavenOnDemand
+
+# module docstring?
 
 export set_api_key,
 
@@ -99,9 +103,9 @@ end
 
 function showerror(io::IO, ex::HODException)
     endpoint = match(r"sync/(.+)/", get(ex.response.request).resource)[1]
-    println(io, typeof(ex))
+    println(io, string(typeof(ex), ": $(endpoint)"))
     for (k, v) in json(ex.response)
-        print(io, string(uppercase(k), ": "))
+        print(io, string(ucfirst(k), ": "))
         println(io, v)
     end
     println(io, "For more information, visit:")
@@ -126,10 +130,15 @@ function call_HOD(
     return r.status == 200 ? json(r) : throw(HODException(r))
 end
 
+"""
+Sets the HavenOn Demand API key, this function must be
+called after `using HavenOnDemand` with a valid key,
+in order to be able to use the Haven OnDemand API.
+"""
 set_api_key(api_key::ASCIIString) = (global HOD_API_KEY; HOD_API_KEY = api_key; nothing)
 
-const API = readtable(joinpath(Pkg.dir("HavenOnDemand"), "src", "api.csv"), separator = ' ')
-      API[:func_name] = Symbol[API[:func_name]...]
+const API = readtable(joinpath(Pkg.dir("HavenOnDemand"), "src", "api.data"), separator = ' ')
+API[:func_name] = Symbol[API[:func_name]...]
 
 for row in eachrow(API)
     func_name   = row[:func_name]
@@ -138,13 +147,16 @@ for row in eachrow(API)
     title = join([ucfirst(s) for s in split(string(func_name), '_')], ' ')
     docstring = (
         """
-        # HPE Haven OnDemand: $(title)
+        **HPE Haven OnDemand: $(title)**
 
-        `$(func_name)(;async = false, kwargs...)`
+        `$(func_name)([kwargs...])`
 
         $description
 
-        For more information, visit:
+        All the arguments are optional and they must be supplied
+        as keyword arguments, non valid keyword names are ignored.
+
+        For information about valid arguments, visit:
 
         * https://dev.havenondemand.com/apis/$(endpoint)
         """
