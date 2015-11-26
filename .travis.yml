@@ -2,12 +2,21 @@
 language: julia
 os:
   - linux
-  - osx
+  # - osx
+env:
+    # - ARCH="i686"
+    - ARCH="x86_64"
+matrix:
+  exclude:
+    - os: linux
+      env: ARCH="i686"
 julia:
   - release
-  - nightly
+  # - nightly
 notifications:
-  email: false
+  email: true
+    on_success: change
+    on_failure: always
 # uncomment the following lines to override the default test script
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
