@@ -1,10 +1,21 @@
 __precompile__(true)
 
+"""
+# HavenOnDemand
+
+Julia package to access HPE Haven OnDemand API.
+
+* https://www.havenondemand.com
+"""
 module HavenOnDemand
 
-# module docstring?
-
 export set_api_key,
+       HODException,
+
+       # Missing
+       # list_stuff
+       # job_status
+       # job_result
 
        # Speech Recognition
        recognize_speech,
@@ -91,60 +102,79 @@ export set_api_key,
        list_resources,
        restore_text_index
 
+using DataFrames: DataFrame, eachrow, readtable
 using HttpCommon: Response
-using Requests:   json, post
-using DataFrames: readtable, eachrow
+using   Requests: json, post
 
 import Base: showerror
 
-type HODException <: Exception
+typealias String AbstractString
+
+"`HavenOnDemand` Exception."
+immutable HODException <: Exception
     response::Response
 end
 
 function showerror(io::IO, ex::HODException)
     endpoint = match(r"sync/(.+)/", get(ex.response.request).resource)[1]
-    println(io, string(typeof(ex), ": $(endpoint)"))
+    println(io, typeof(ex), ": $endpoint")
     for (k, v) in json(ex.response)
-        print(io, string(ucfirst(k), ": "))
+        print(io, ucfirst(k), ": ")
         println(io, v)
     end
     println(io, "For more information, visit:")
     println(io, "* https://dev.havenondemand.com/apis/$(endpoint)")
 end
 
+"Main `HavenOnDemand` function, used to call **Haven OnDemand** API."
 function call_HOD(
-        endpoint        :: UTF8String,
+        endpoint        :: String,
         async           :: Bool;
-        api_url         :: ASCIIString = "https://api.havenondemand.com",
-        version         :: Int         = 1,
-        default_version :: Int         = 1,
-        options         :: Dict        = Dict(),
+        api_url         :: String = "https://api.havenondemand.com",
+        version         :: Int    = 1,
+        default_version :: Int    = 1,
+        options         :: Dict   = Dict()
     )
     try
-        options["apikey"] = HOD_API_KEY
+        options["apikey"] = _HOD_API_KEY
     catch
-        error("Use `HavenOnDemand.set_api_key(api_key::ASCIIString)` first.")
+        error("Use `HavenOnDemand.set_api_key(api_key::AbstractString)` first.")
     end
     sync_str = async ? "async" : "sync"
-    r = post("$(api_url)/$(version)/api/$(sync_str)/$(endpoint)/v$(default_version)", data = options)
+    r = post(
+        "$(api_url)/$(version)/api/$(sync_str)/$(endpoint)/v$(default_version)",
+        data = options
+    )
     return r.status == 200 ? json(r) : throw(HODException(r))
 end
 
 """
-Sets the HavenOn Demand API key, this function must be
-called after `using HavenOnDemand` with a valid key,
-in order to be able to use the Haven OnDemand API.
+Sets the **HavenOn Demand** API key, this function must be called after
+`using HavenOnDemand` with a valid key, in order to be able to use the Haven
+OnDemand *API*.
 """
-set_api_key(api_key::ASCIIString) = (global HOD_API_KEY; HOD_API_KEY = api_key; nothing)
+function set_api_key(api_key::String)
+    global _HOD_API_KEY
+    const _HOD_API_KEY = api_key
+    return nothing
+end
 
-const API = readtable(joinpath(Pkg.dir("HavenOnDemand"), "src", "api.data"), separator = ' ')
-API[:func_name] = Symbol[API[:func_name]...]
+"""
+`DataFrame` that holds the `HavenOnDemand` data used to metaprogram a wrapper
+function for each endpoint in the API.
+"""
+const HOD_API = readtable(
+    joinpath(Pkg.dir("HavenOnDemand"), "src", "api.data"),
+    separator = ' ',
+)
 
-for row in eachrow(API)
-    func_name   = row[:func_name]
-    endpoint    = row[:endpoint]
-    description = row[:description]
-    title = join([ucfirst(s) for s in split(string(func_name), '_')], ' ')
+# Meta wrap the API:
+for row in eachrow(HOD_API::DataFrame)
+    func_name   = row[:Func_Name]
+    endpoint    = row[:Endpoint]
+    async_only  = row[:Async_Only]
+    description = row[:Description]
+    title = join([ucfirst(s) for s in split(func_name, '_')], ' ')
     docstring = (
         """
         **HPE Haven OnDemand: $(title)**
@@ -163,7 +193,9 @@ for row in eachrow(API)
     )
     @eval begin
         @doc $docstring ->
-        $(func_name)(;async = false, kwargs...) = call_HOD($endpoint, async, options = Dict(kwargs))
+        function $(symbol(func_name))(; kwargs...)
+            return call_HOD($endpoint, $async_only, options = Dict(kwargs))
+        end
     end
 end
 

@@ -4,5 +4,5 @@ repo_url: https://github.com/richitmx/HavenOnDemand.jl
 theme: readthedocs
 docs_dir: 'doc'
 pages:
-- ['index.md', 'Index']
-- ['home.md', 'Home']
+    - ['index.md', 'Index']
+    - ['home.md', 'Home']
