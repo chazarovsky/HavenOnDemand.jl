@@ -2,22 +2,11 @@
 language: julia
 os:
   - linux
-  # - osx
-env:
-    # - ARCH="i686"
-    - ARCH="x86_64"
-matrix:
-  exclude:
-    - os: linux
-      env: ARCH="i686"
 julia:
   - release
-  # - nightly
 notifications:
   email: true
-    on_success: change
-    on_failure: always
 # uncomment the following lines to override the default test script
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia -e 'Pkg.clone(pwd()); Pkg.build("HavenOnDemand"); Pkg.test("HavenOnDemand"; coverage=true)'
+#  - julia -e 'Pkg.clone(pwd()); Pkg.build("Test"); Pkg.test("Test"; coverage=true)'
