@@ -34,7 +34,7 @@ positive_response = analyze_sentiment(text = "I love all zombies!")
 
 negative_response = analyze_sentiment(
     text    = "I hate all plants!",    # ...some zombie
-    this_is = :ignored    # only non valid kwargs are ignored
+    this_is = :ignored    # non valid kwargs are ignored
 )
 
 @test negative_response["aggregate"]["sentiment"] == "negative"
